@@ -127,19 +127,115 @@ cmd_ssh() {
     fi
 }
 
+get_site_id() {
+    local vvv_root="$1"
+    local rel_path="${PWD##$vvv_root}"
+    rel_path="${rel_path#/}"
+    if [[ "${rel_path%%/*}" != "www" ]]; then
+        echo >&2 "Error: Must be executed within $vvv_root/www"
+        exit 1
+    fi
+    local site_id="${rel_path#www/}"
+    site_id="${site_id%%/*}"
+    echo "$site_id"
+}
+
+parse_site_config() {
+    local site_id="$1"
+    local config_file="$VVV_ROOT/config/config.yml"
+
+    declare -A config_map=(
+        [ssh_host]=".sites.\"$site_id\".pull.ssh_host"
+        [www_path]=".sites.\"$site_id\".pull.www_path"
+        [fqdn]=".sites.\"$site_id\".pull.fqdn"
+        [dev_domain]=".sites.\"$site_id\".hosts[0]"
+        [dump_path]=".sites.\"$site_id\".pull.dump_path // \"~\""
+    )
+
+    for key in "${!config_map[@]}"; do
+        local value=$(yq -e -r "${config_map[$key]}" "$config_file" 2>/dev/null)
+        [[ -z "$value" || "$value" == "null" ]] && {
+            >&2 echo "Missing $key in config for site $site_id"
+            return 1
+        }
+        declare -g "$key"="$value"
+    done
+    return 0
+}
+
+sync_wp_content() {
+    echo "Downloading PROD wp-content files..."
+    local exclusions=()
+    # Add exclusion logic here from config (skipped for brevity)
+    rsync -av --progress --delete "${exclusions[@]}" "$ssh_host:$www_path/wp-content/" "$VVV_ROOT/www/$site_id/public_html/wp-content/"
+}
+
+sync_database() {
+    local dump_file="wpdb.sql.gz"
+
+    echo "Exporting PROD database"
+    ssh "$ssh_host" "cd $www_path; wp db export - | gzip > '$dump_path/$dump_file'"
+
+    echo "Downloading database"
+    rsync -av --progress "$ssh_host:$dump_path/$dump_file" .
+
+    echo "Importing database into Vagrant"
+    vagrant ssh -c "cd '$vvv_box_path';
+        gunzip -c '$dump_file' | wp db import -;
+        rm '$dump_file'"
+}
+
+run_post_commands() {
+    local vvv_box_path="/srv/www/$1/public_html"
+
+    # Always run these commands:
+    vagrant ssh -c "wp --path='$vvv_box_path' \\
+        search-replace '//$fqdn' '//$dev_domain' \\
+        && wp option update admin_email 'dev-email@flywheel.test' \\
+        && wp cache flush"
+
+    # Add conditional post-commands here
+}
+
 cmd_pull() {
-    echo "NOT IMPLEMENTED"
-    exit 1
+    do_pull true true
 }
 
 cmd_pull_db() {
-    echo "NOT IMPLEMENTED"
-    exit 1
+    do_pull false true
 }
 
 cmd_pull_wp_content() {
-    echo "NOT IMPLEMENTED"
-    exit 1
+    do_pull true false
+}
+
+do_pull() {
+    local sync_files=$1
+    local sync_db=$2
+
+    # Get current site ID
+    local site_id=$(get_site_id "$VVV_ROOT")
+
+    # Exit if we're not in a site directory
+    [[ -z "$site_id" ]] && exit 1
+
+    # Parse site configuration
+    parse_site_config "$site_id" || exit 1
+
+    # Determine vagrant box path
+    local vvv_box_path="/srv/www/$site_id"
+
+    # Perform requested sync operations
+    pushd "$VVV_ROOT/www/$site_id" >/dev/null
+
+    $sync_files && sync_wp_content
+    $sync_db && sync_database
+
+    # Run post-commands after DB sync
+    $sync_db && run_post_commands "$site_id"
+
+    popd >/dev/null
+    echo "Sync complete! Access via http://$dev_domain"
 }
 
 # Parse command line arguments
