@@ -26,13 +26,13 @@ hosts:
     repo: https://github.com/Varying-Vagrant-Vagrants/custom-site-template.git
     php: 8.3
     hosts:
-      - site1.test
+      - site1.test                      -- used for search-replacing the fqdn
     custom:
       wpconfig_constants:
         WP_DEBUG: true
         WP_DEBUG_LOG: true
         WP_DISABLE_FATAL_ERROR_HANDLER: true
-      live_url: https://site1.fi
+      live_url: https://site1.fi        -- ignored (used by VVV)
     pull:
       ssh_host: site1-server
       www_path: /home/master/site1/public_html
@@ -81,7 +81,11 @@ Starts VVV box with `vagrant up`, can be run from anywhere when environment vari
 
 ### `bvv pull` Pull live site state to development environment
 
-Validation should be done accordingly checking that fs paths and fqdn are correct format, and that all required commands are available.
+The command is expected to be run from within `$VVV_ROOT/www/<site-id>/` so that the `site-id` can be parsed and the according pull config can be read from the `config.yml`.
+
+Then site state is pulled from production roughly as in example script `pull.example.sh`.
+
+Validation should be done for having all required data before running command. FS paths and fqdn should be in correct format.
 
 Uses rsync and wp-cli over ssh. Example procedure is in `pull.example.sh`. By default uses rsync to pull wp-content files, with optional exclusions listed in config, and then pulls database that is exported with wp-cli and gzipped, with --delete-source-files flag so the original file is deleted on server.
 
