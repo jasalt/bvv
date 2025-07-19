@@ -1,3 +1,206 @@
 #!/bin/bash
 
-set -eox pipefail # verbose output, should also stop script if something fails
+set -euo pipefail
+
+# Global variables
+VVV_ROOT=""
+COMMAND=""
+SUBCOMMAND=""
+
+# Function to show usage
+show_usage() {
+    cat << EOF
+Usage: bvv [OPTIONS] COMMAND [SUBCOMMAND]
+
+OPTIONS:
+  --vvv-root PATH    Path to VVV root directory
+  -h, --help         Show this help message
+
+COMMANDS:
+  up                 Start VVV box with vagrant up
+  ssh                SSH to Vagrant box in the current folder
+  pull [db|wp-content]  Pull live site state (NOT IMPLEMENTED)
+
+EXAMPLES:
+  bvv up
+  bvv ssh
+  bvv pull
+  bvv pull db
+  bvv pull wp-content
+EOF
+}
+
+# Function to find VVV root directory
+find_vvv_root() {
+    local current_dir="$PWD"
+    
+    # Check if directory has Vagrantfile and config/config.yml
+    while [[ "$current_dir" != "/" ]]; do
+        if [[ -f "$current_dir/Vagrantfile" && -f "$current_dir/config/config.yml" ]]; then
+            echo "$current_dir"
+            return 0
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    
+    return 1
+}
+
+# Function to initialize VVV_ROOT
+init_vvv_root() {
+    # Priority 1: --vvv-root command line argument (handled in argument parsing)
+    if [[ -n "$VVV_ROOT" ]]; then
+        if [[ ! -f "$VVV_ROOT/Vagrantfile" || ! -f "$VVV_ROOT/config/config.yml" ]]; then
+            echo "Error: Invalid VVV root directory: $VVV_ROOT" >&2
+            echo "Directory must contain Vagrantfile and config/config.yml" >&2
+            exit 1
+        fi
+        return 0
+    fi
+    
+    # Priority 2: VVV_ROOT environment variable
+    if [[ -n "${VVV_ROOT:-}" ]]; then
+        VVV_ROOT="$VVV_ROOT"
+        if [[ ! -f "$VVV_ROOT/Vagrantfile" || ! -f "$VVV_ROOT/config/config.yml" ]]; then
+            echo "Error: Invalid VVV root directory from environment: $VVV_ROOT" >&2
+            echo "Directory must contain Vagrantfile and config/config.yml" >&2
+            exit 1
+        fi
+        return 0
+    fi
+    
+    # Priority 3: Search from current directory upwards
+    if VVV_ROOT=$(find_vvv_root); then
+        return 0
+    fi
+    
+    echo "Error: Could not find VVV root directory" >&2
+    echo "Please specify with --vvv-root or set VVV_ROOT environment variable" >&2
+    exit 1
+}
+
+# Function to get relative path for SSH
+get_relative_path() {
+    local current_dir="$PWD"
+    local vvv_root="$1"
+    
+    # Check if we're inside VVV directory
+    if [[ "$current_dir" == "$vvv_root"* ]]; then
+        local rel_path="${current_dir#$vvv_root}"
+        rel_path="${rel_path#/}"
+        
+        # Map to /srv/ path in vagrant box
+        if [[ -n "$rel_path" ]]; then
+            echo "/srv/$rel_path"
+        else
+            echo "/srv"
+        fi
+    else
+        echo ""
+    fi
+}
+
+# Command implementations
+cmd_up() {
+    echo "Starting VVV box..."
+    cd "$VVV_ROOT"
+    vagrant up
+}
+
+cmd_ssh() {
+    local rel_path
+    rel_path=$(get_relative_path "$VVV_ROOT")
+    
+    cd "$VVV_ROOT"
+    
+    if [[ -n "$rel_path" ]]; then
+        echo "SSH to Vagrant box and cd to $rel_path"
+        vagrant ssh -c "cd '$rel_path' && bash -l"
+    else
+        echo "SSH to Vagrant box"
+        vagrant ssh
+    fi
+}
+
+cmd_pull() {
+    echo "NOT IMPLEMENTED"
+    exit 1
+}
+
+cmd_pull_db() {
+    echo "NOT IMPLEMENTED"
+    exit 1
+}
+
+cmd_pull_wp_content() {
+    echo "NOT IMPLEMENTED"
+    exit 1
+}
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --vvv-root)
+            VVV_ROOT="$2"
+            shift 2
+            ;;
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        up|ssh|pull)
+            COMMAND="$1"
+            shift
+            break
+            ;;
+        *)
+            echo "Error: Unknown option or command: $1" >&2
+            show_usage
+            exit 1
+            ;;
+    esac
+done
+
+# Parse subcommand for pull
+if [[ "$COMMAND" == "pull" && $# -gt 0 ]]; then
+    case $1 in
+        db|wp-content)
+            SUBCOMMAND="$1"
+            shift
+            ;;
+        *)
+            echo "Error: Unknown pull subcommand: $1" >&2
+            show_usage
+            exit 1
+            ;;
+    esac
+fi
+
+# Validate command
+if [[ -z "$COMMAND" ]]; then
+    echo "Error: No command specified" >&2
+    show_usage
+    exit 1
+fi
+
+# Initialize VVV_ROOT
+init_vvv_root
+
+# Execute command
+case "$COMMAND" in
+    up)
+        cmd_up
+        ;;
+    ssh)
+        cmd_ssh
+        ;;
+    pull)
+        if [[ "$SUBCOMMAND" == "db" ]]; then
+            cmd_pull_db
+        elif [[ "$SUBCOMMAND" == "wp-content" ]]; then
+            cmd_pull_wp_content
+        else
+            cmd_pull
+        fi
+        ;;
+esac
