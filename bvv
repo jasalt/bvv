@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euox pipefail
 
 # Global variables
 VVV_ROOT=""
@@ -33,7 +33,7 @@ EOF
 # Function to find VVV root directory
 find_vvv_root() {
     local current_dir="$PWD"
-    
+
     # Check if directory has Vagrantfile and config/config.yml
     while [[ "$current_dir" != "/" ]]; do
         if [[ -f "$current_dir/Vagrantfile" && -f "$current_dir/config/config.yml" ]]; then
@@ -42,13 +42,13 @@ find_vvv_root() {
         fi
         current_dir=$(dirname "$current_dir")
     done
-    
+
     return 1
 }
 
 # Function to initialize VVV_ROOT
 init_vvv_root() {
-    # Priority 1: --vvv-root command line argument (handled in argument parsing)
+    # Priority 1: --vvv-root command line argument (if passed)
     if [[ -n "$VVV_ROOT" ]]; then
         if [[ ! -f "$VVV_ROOT/Vagrantfile" || ! -f "$VVV_ROOT/config/config.yml" ]]; then
             echo "Error: Invalid VVV root directory: $VVV_ROOT" >&2
@@ -57,10 +57,10 @@ init_vvv_root() {
         fi
         return 0
     fi
-    
+
     # Priority 2: VVV_ROOT environment variable
-    if [[ -n "${VVV_ROOT:-}" ]]; then
-        VVV_ROOT="$VVV_ROOT"
+    if [[ -n "${VVV_ROOT_DIR:-}" ]]; then
+        VVV_ROOT="VVV_ROOT_DIR"
         if [[ ! -f "$VVV_ROOT/Vagrantfile" || ! -f "$VVV_ROOT/config/config.yml" ]]; then
             echo "Error: Invalid VVV root directory from environment: $VVV_ROOT" >&2
             echo "Directory must contain Vagrantfile and config/config.yml" >&2
@@ -68,12 +68,12 @@ init_vvv_root() {
         fi
         return 0
     fi
-    
+
     # Priority 3: Search from current directory upwards
     if VVV_ROOT=$(find_vvv_root); then
         return 0
     fi
-    
+
     echo "Error: Could not find VVV root directory" >&2
     echo "Please specify with --vvv-root or set VVV_ROOT environment variable" >&2
     exit 1
@@ -83,12 +83,12 @@ init_vvv_root() {
 get_relative_path() {
     local current_dir="$PWD"
     local vvv_root="$1"
-    
+
     # Check if we're inside VVV directory
     if [[ "$current_dir" == "$vvv_root"* ]]; then
         local rel_path="${current_dir#$vvv_root}"
         rel_path="${rel_path#/}"
-        
+
         # Map to /srv/ path in vagrant box
         if [[ -n "$rel_path" ]]; then
             echo "/srv/$rel_path"
@@ -110,9 +110,9 @@ cmd_up() {
 cmd_ssh() {
     local rel_path
     rel_path=$(get_relative_path "$VVV_ROOT")
-    
+
     cd "$VVV_ROOT"
-    
+
     if [[ -n "$rel_path" ]]; then
         echo "SSH to Vagrant box and cd to $rel_path"
         vagrant ssh -c "cd '$rel_path' && bash -l"
