@@ -60,7 +60,7 @@ init_vvv_root() {
 
     # Priority 2: VVV_ROOT environment variable
     if [[ -n "${VVV_ROOT_DIR:-}" ]]; then
-        VVV_ROOT="VVV_ROOT_DIR"
+        VVV_ROOT="$VVV_ROOT_DIR"
         if [[ ! -f "$VVV_ROOT/Vagrantfile" || ! -f "$VVV_ROOT/config/config.yml" ]]; then
             echo "Error: Invalid VVV root directory from environment: $VVV_ROOT" >&2
             echo "Directory must contain Vagrantfile and config/config.yml" >&2
