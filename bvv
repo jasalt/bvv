@@ -177,12 +177,14 @@ sync_wp_content() {
 
 sync_database() {
     local dump_file="wpdb.sql.gz"
+    local vvv_box_path="/srv/www/$site_id/public_html"
 
     echo "Exporting PROD database"
-    ssh "$ssh_host" "cd $www_path; wp db export - | gzip > '$dump_path/$dump_file'"
+	# NOTE dump_file moving not tested
+    ssh "$ssh_host" "cd $www_path && wp db export ~/wpdb.sql && gzip -f ~/wpdb.sql && if [ '$dump_path' != '\$HOME' ] && [ '$dump_path' != '~' ]; then mv ~/wpdb.sql.gz $dump_path/$dump_file; fi"
 
     echo "Downloading database"
-    rsync -av --progress "$ssh_host:$dump_path/$dump_file" .
+    rsync -av --progress --remove-source-files "$ssh_host:$dump_path/$dump_file" .
 
     echo "Importing database into Vagrant"
     vagrant ssh -c "cd '$vvv_box_path';
