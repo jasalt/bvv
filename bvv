@@ -160,6 +160,11 @@ parse_site_config() {
         }
         declare -g "$key"="$value"
     done
+
+    # Remove trailing slashes to prevent double slashes in paths
+    www_path="${www_path%/}"
+    dump_path="${dump_path%/}"
+
     return 0
 }
 
