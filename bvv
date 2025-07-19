@@ -1,0 +1,3 @@
+#!/bin/bash
+
+set -eox pipefail # verbose output, should also stop script if something fails
