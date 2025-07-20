@@ -15,7 +15,8 @@ Additionally uses `lnav` for `bvv logs` command.
 # Docs
 
 ## Extended VVV `config.yml` format
-Uses `yq` to parse `$VVV_ROOT/config/config.yml`:
+
+Custom configuration used by the tool is defined under `bvv` keyword in VVV [custom site template](https://github.com/Varying-Vagrant-Vagrants/custom-site-template/blob/master/README.md) located at `$VVV_ROOT/config/config.yml`.
 
 ```
 hosts:
@@ -66,13 +67,14 @@ hosts:
 
 ```
 
-
 ## Implementation
 
 On startup, initializes `VVV_ROOT` pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
 1) `--vvv-root` command line argument
 2) `VVV_ROOT_PATH` environment variable
-3) search dir (having `Vagrantfile` and `./config/config.yml`) starting from cwd traversing to upper level directories up to filesystem root
+3) dynamically identify current VVV root directory (having `Vagrantfile` and `./config/config.yml`) by traversing upwards in the directory tree
+
+The tool should function without any environment variable setup and also allow setting the VVV path explicitly if needed.
 
 ## Commands
 
@@ -81,7 +83,6 @@ Starts VVV box with `vagrant up`, can be run from anywhere when environment vari
 
 ### `bvv down` & `bvv halt`
 Stop VVV box with `vagrant halt`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
-
 
 ### `bvv ssh` SSH to Vagrant box in the current folder
 While editing plugin or theme files on host, sometimes it's necessary to run commands like `composer install` inside the Vagrant box.
