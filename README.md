@@ -2,6 +2,10 @@ Personal WordPress development setup helper tool for VVV Vagrant extending `conf
 
 Work in progress but implemented commands should mostly work.
 
+Config format may change slightly in future.
+
+See issues section in bottom of this document.
+
 Main repository for this project with issue tracker is at [https://codeberg.org/jasalt/bvv](Codeberg).
 
 
@@ -42,7 +46,7 @@ hosts:
       repositories:         -- excluded from pull command rsync
         plugins: [myplugin1, myplugin2] -- git repositories
         themes: [mytheme]
-      wp-content-exclude: [object-cache.php]  -- excluded from wp-content sync
+      wp-content-exclude: [object-cache.php, advanced-cache.php]  -- excluded from wp-content sync
       post-commands:
         deactivate_plugins = [myplugin3, myplugin4]
         create_admin = true                            -- creates admin user "admin" "password"
@@ -201,3 +205,9 @@ Non-standard WP file structure not tested.
 Only database and `wp-content` is are downloaded from live site. Other files such as WordPress Core files are not taken into account and need to be kept up to date manually. There could be a version check during sync that could warn if versions differ.
 
 Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require modifications to work with Docker provider.
+# Issues
+
+- `bvv pull` broken outside plugin/theme repo but `bvv pull -all` works
+- Shellcheck warnings
+
+Issues can be raised on Codeberg issue tracker or by sending me a message.
