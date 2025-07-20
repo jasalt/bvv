@@ -6,6 +6,7 @@ set -euox pipefail
 VVV_ROOT=""
 COMMAND=""
 SUBCOMMAND=""
+declare -g REPO_TYPE="" REPO_NAME=""  # For repo detection
 
 # Function to show usage
 show_usage() {
@@ -20,7 +21,8 @@ COMMANDS:
   up                 Start VVV box with vagrant up
   ssh                SSH to Vagrant box in the current folder
   pull [db|wp-content]  Pull live site state
-  logs [site-id]        View application logs with lnav
+  push [--all]       Deploy repository changes to remote
+  logs [site-id]     View application logs with lnav
 
 EXAMPLES:
   bvv up
@@ -28,6 +30,8 @@ EXAMPLES:
   bvv pull
   bvv pull db
   bvv pull wp-content
+  bvv push
+  bvv push --all
 EOF
 }
 
@@ -127,9 +131,9 @@ cmd_logs() {
         fi
     fi
 
-    # Get site root path  
+    # Get site root path
     local site_root="$VVV_ROOT/www/$site_id/public_html"
-    
+
     if [[ ! -d "$site_root" ]]; then
         echo "Error: Site directory not found: $site_root" >&2
         exit 1
@@ -219,23 +223,23 @@ sync_wp_content() {
 
     # Read exclusions from config if they exist
     local config_file="$VVV_ROOT/config/config.yml"
-    
+
     # Read plugin exclusions
-    local plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".plugins[]?" "$config_file" 2>/dev/null || true)
+    local plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$plugin_exclusions" ]]; then
         while IFS= read -r plugin; do
             [[ -n "$plugin" ]] && exclusions+=("--exclude" "plugins/$plugin")
         done <<< "$plugin_exclusions"
     fi
-    
+
     # Read theme exclusions
-    local theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".themes[]?" "$config_file" 2>/dev/null || true)
+    local theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$theme_exclusions" ]]; then
         while IFS= read -r theme; do
             [[ -n "$theme" ]] && exclusions+=("--exclude" "themes/$theme")
         done <<< "$theme_exclusions"
     fi
-    
+
     # Read other exclusions
     local other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".other[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$other_exclusions" ]]; then
@@ -243,7 +247,7 @@ sync_wp_content() {
             [[ -n "$other" ]] && exclusions+=("--exclude" "$other")
         done <<< "$other_exclusions"
     fi
-    
+
     # If no exclusions found in config, use defaults
     if [[ ${#exclusions[@]} -eq 0 ]]; then
         exclusions+=(
@@ -327,6 +331,106 @@ do_pull() {
     echo "Sync complete! Access via http://$dev_domain"
 }
 
+cmd_push() {
+    local push_all_flag="$1"
+    local site_id
+    local config_file="$VVV_ROOT/config/config.yml"
+
+    # Get current site ID if we're in a site directory
+    site_id=$(get_site_id "$VVV_ROOT")
+    [[ -z "$site_id" ]] && {
+        echo "Error: Not in a site directory" >&2
+        exit 1
+    }
+
+    if [[ -n "$push_all_flag" ]]; then
+        # Push all registered repositories
+        echo "Deploying all repositories for site $site_id"
+        
+        # Get plugin repositories
+        readarray -t plugins < <(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null)
+        for plugin in "${plugins[@]}"; do
+            [[ -n "$plugin" ]] || continue
+            push_single_repository "$site_id" "plugins" "$plugin"
+        done
+        
+        # Get theme repositories
+        readarray -t themes < <(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null)
+        for theme in "${themes[@]}"; do
+            [[ -n "$theme" ]] || continue
+            push_single_repository "$site_id" "themes" "$theme"
+        done
+        
+    else
+        # Push single repository
+        if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            echo "Error: Current directory is not a git repository" >&2
+            exit 1
+        fi
+        
+        # Get repository type and name from current path
+        local repo_path
+        local repo_type
+        local repo_name
+        get_repo_info "$site_id"
+        
+        [[ -z "$repo_type" || -z "$repo_name" ]] && {
+            echo "Error: Unable to determine repository info" >&2
+            exit 1
+        }
+        
+        push_single_repository "$site_id" "$repo_type" "$repo_name"
+    fi
+}
+
+get_repo_info() {
+    local site_id="$1"
+    local abs_path="$VVV_ROOT/www/$site_id/public_html/wp-content"
+    
+    # Check if we're inside wp-content directory
+    if [[ "$PWD" != "$abs_path/"* ]]; then
+        echo "Error: Must be inside a site's wp-content" >&2
+        return 1
+    fi
+    
+    # Split path to get directory components
+    local rel_path="${PWD#$abs_path/}"
+    IFS='/' read -r repo_type repo_name remaining <<< "$rel_path"
+    
+    # Set as globals (caller uses these)
+    if [[ -n "$repo_type" && -n "$repo_name" ]] && [[ -d "$abs_path/$repo_type/$repo_name" ]]; then
+        REPO_TYPE="$repo_type"
+        REPO_NAME="$repo_name"
+    fi
+}
+
+push_single_repository() {
+    local site_id="$1"
+    local repo_type="$2"
+    local repo_name="$3"
+    
+    # Parse configuration
+    parse_site_config "$site_id" || exit 1
+    
+    # Confirm the repo exists locally
+    local repo_path="$VVV_ROOT/www/$site_id/public_html/wp-content/$repo_type/$repo_name"
+    if [[ ! -d "$repo_path" ]]; then
+        echo "Error: Repository not found: $repo_path" >&2
+        exit 1
+    fi
+    
+    # Push to git origin
+    pushd "$repo_path" >/dev/null
+    echo "Executing git push in $(pwd)"
+    git push
+    popd >/dev/null
+    
+    # Update on remote server
+    local remote_path="$www_path/wp-content/$repo_type/$repo_name"
+    echo "Executing git pull on remote server..."
+    ssh "$ssh_host" "cd \"$remote_path\" && git pull"
+}
+
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -338,7 +442,7 @@ while [[ $# -gt 0 ]]; do
             show_usage
             exit 0
             ;;
-        up|halt|down|ssh|pull|logs)
+        up|halt|down|ssh|pull|push|logs)  # Added push here
             COMMAND="$1"
             shift
             break
@@ -350,6 +454,15 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Initialize push_flag
+push_flag=""
+
+# Parse flags for push
+if [[ $COMMAND == "push" && $# -gt 0 && $1 == "--all" ]]; then
+    push_flag="--all"
+    shift
+fi
 
 # Parse subcommand for pull
 if [[ "$COMMAND" == "pull" && $# -gt 0 ]]; then
@@ -398,5 +511,8 @@ case "$COMMAND" in
         ;;
     logs)
         cmd_logs "$@"
+        ;;
+    push)  # New push command handler
+        cmd_push "$push_flag"
         ;;
 esac
