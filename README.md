@@ -100,7 +100,7 @@ Uses rsync and wp-cli over ssh. Example procedure is in `pull.example.sh`. By de
 Not implemented for now.
 
 ## Log commands
-### `bvv log` (draft spec)
+### `bvv logs` (draft spec)
 Shortcut to open `less` or `lnav` for different logs across applications.
 
 Different log types for Nginx/Apache:
@@ -114,6 +114,22 @@ Lnav could simplify handling multiple log files but needs to be installed on rem
 
 #### Yaml config directive `bvv.log_paths[]`
 
+
+#### Usage examples (WIP)
+
+bvv log [access|error|static|debug]
+- expects to be run within vagrant
+- defaults to opening curren local `wp-content/debug.log` with `less`
+
+- Should it work from outside the VVV_ROOT? Probably should, but positional arg having two meanings would make things complicated e.g. `bvv log mysite` v.s. `bvv log access`
+
+##### Remote log reading (?)
+Unclear if this tool should include external log viewing, while `config.yml` could contain a single "inventory" of such information.
+
+bvv log [application-id] [?] [access|error|static|debug]
+- How to choose production vs. local dev? `--remote` flag?
+
+###### Yaml config:
 Option A:
 - access: /path/to/access.log
 - error: /path/to/error.log
@@ -122,13 +138,6 @@ Option A:
 
 Option B:
 - log_paths=[/path/to/logs, /path/to/logs2]
-
-#### Usage examples
-
-bvv log [application-id] [?]
-- How to choose production?
-- Should it work from outside the VVV_ROOT? Probably should.
-  - bvv logs mysite production error
 
 # Not implemented or considered for now
 
