@@ -19,7 +19,8 @@ OPTIONS:
 COMMANDS:
   up                 Start VVV box with vagrant up
   ssh                SSH to Vagrant box in the current folder
-  pull [db|wp-content]  Pull live site state (NOT IMPLEMENTED)
+  pull [db|wp-content]  Pull live site state
+  logs [site-id]        View application logs with lnav
 
 EXAMPLES:
   bvv up
@@ -110,6 +111,50 @@ cmd_halt() {
     echo "Halting VVV box..."
     cd "$VVV_ROOT"
     vagrant halt
+}
+
+cmd_logs() {
+    local site_id
+    if [[ $# -gt 0 ]]; then
+        # Use provided site-id if argument passed
+        site_id="$1"
+    else
+        # Otherwise try to get it from current directory
+        site_id=$(get_site_id "$VVV_ROOT")
+        if [[ -z "$site_id" ]]; then
+            echo "Error: No site_id found and not in a site directory" >&2
+            exit 1
+        fi
+    fi
+
+    # Get site root path  
+    local site_root="$VVV_ROOT/www/$site_id/public_html"
+    
+    if [[ ! -d "$site_root" ]]; then
+        echo "Error: Site directory not found: $site_root" >&2
+        exit 1
+    fi
+
+    # Find all relevant log files
+    local debug_log="$site_root/wp-content/debug.log"
+    local log_dir="$site_root/../log"
+    local logs=()
+
+    [[ -f "$debug_log" ]] && logs+=("$debug_log")
+    [[ -d "$log_dir" ]] && logs+=($log_dir/*.log)
+
+    if [[ ${#logs[@]} -eq 0 ]]; then
+        echo "No log files found for site $site_id" >&2
+        exit 1
+    fi
+
+    if ! command -v lnav >/dev/null 2>&1; then
+        echo "Error: lnav is required but not installed" >&2
+        echo "Install with: sudo apt-get install lnav" >&2
+        exit 1
+    fi
+
+    lnav "${logs[@]}"
 }
 
 cmd_ssh() {
@@ -293,7 +338,7 @@ while [[ $# -gt 0 ]]; do
             show_usage
             exit 0
             ;;
-        up|halt|down|ssh|pull)
+        up|halt|down|ssh|pull|logs)
             COMMAND="$1"
             shift
             break
@@ -350,5 +395,8 @@ case "$COMMAND" in
         else
             cmd_pull
         fi
+        ;;
+    logs)
+        cmd_logs "$@"
         ;;
 esac
