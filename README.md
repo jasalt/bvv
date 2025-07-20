@@ -36,18 +36,18 @@ hosts:
     bvv:
       ssh_host: site1-server
       www_path: /home/master/site1/public_html
-      fqdn: example.com     -- get's search-replaced with site[hosts][0]
-	  dump-path: /tmp       -- optional path to store temporary db dump, server home
-	  repositories:         -- excluded from pull command rsync
-	    plugins: [myplugin1, myplugin2] -- git repositories
-		themes: [mytheme]
+      fqdn: example.com     -- get's search-replaced with site's first hosts entry[hosts][0]
+      dump-path: /tmp       -- optional path to store temporary db dump, server home
+      repositories:         -- excluded from pull command rsync
+        plugins: [myplugin1, myplugin2] -- git repositories
+      themes: [mytheme]
       wp-content-exclude: [object-cache.php]  -- excluded from wp-content sync
-	  post-commands:
-	    deactivate_plugins = [myplugin3, myplugin4]
-	    create_admin = true                            -- creates admin user "admin" "password"
-	    extra_commands = [wp cache flush, echo hello]  -- executed in vagrant box afterwards
+      post-commands:
+        deactivate_plugins = [myplugin3, myplugin4]
+        create_admin = true                            -- creates admin user "admin" "password"
+        extra_commands = [wp cache flush, echo hello]  -- executed in vagrant box afterwards
       repositories:
-	    - wp-content
+        - wp-content
   site2:                           -- minimal example with for pull command
     skip_provisioning: false
     description: "Demo Site 1 (production)"
