@@ -145,11 +145,11 @@ parse_site_config() {
     local config_file="$VVV_ROOT/config/config.yml"
 
     declare -A config_map=(
-        [ssh_host]=  ".sites.\"$site_id\".bvv.ssh_host"
-        [www_path]=  ".sites.\"$site_id\".bvv.www_path"
-        [fqdn]=      ".sites.\"$site_id\".bvv.fqdn"
+        [ssh_host]=".sites.\"$site_id\".bvv.ssh_host"
+        [www_path]=".sites.\"$site_id\".bvv.www_path"
+        [fqdn]=".sites.\"$site_id\".bvv.fqdn"
         [dev_domain]=".sites.\"$site_id\".hosts[0]"
-        [dump_path]= ".sites.\"$site_id\".bvv.dump_path // \"~\""
+        [dump_path]=".sites.\"$site_id\".bvv.dump_path // \"~\""
     )
 
     for key in "${!config_map[@]}"; do
