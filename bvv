@@ -364,8 +364,9 @@ cmd_push() {
     else
         # Push single repository
         if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-            echo "Error: Current directory is not a git repository" >&2
-            exit 1
+            # If not in a git repo but in site directory, push all repos
+            cmd_push "true"
+            return
         fi
         
         # Get repository type and name from current path
@@ -374,10 +375,11 @@ cmd_push() {
         local repo_name
         get_repo_info "$site_id"
         
-        [[ -z "$repo_type" || -z "$repo_name" ]] && {
-            echo "Error: Unable to determine repository info" >&2
-            exit 1
-        }
+        if [[ -z "$repo_type" || -z "$repo_name" ]]; then
+            # If we can't determine repo but are in site directory, push all repos
+            cmd_push "true"
+            return
+        fi
         
         push_single_repository "$site_id" "$repo_type" "$repo_name"
     fi
@@ -385,23 +387,37 @@ cmd_push() {
 
 get_repo_info() {
     local site_id="$1"
-    local abs_path="$VVV_ROOT/www/$site_id/public_html/wp-content"
+    local site_path="$VVV_ROOT/www/$site_id"
     
-    # Check if we're inside wp-content directory
-    if [[ "$PWD" != "$abs_path/"* ]]; then
-        echo "Error: Must be inside a site's wp-content" >&2
+    # Check if we're inside the site directory
+    if [[ "$PWD" != "$site_path/"* ]]; then
+        echo "Error: Must be inside a site directory ($site_path)" >&2
         return 1
     fi
     
-    # Split path to get directory components
-    local rel_path="${PWD#$abs_path/}"
-    IFS='/' read -r repo_type repo_name remaining <<< "$rel_path"
+    # Get path relative to site root
+    local rel_path="${PWD#$site_path/}"
+    IFS='/' read -r _ _ repo_type repo_name remaining <<< "$rel_path"
     
-    # Set as globals (caller uses these)
-    if [[ -n "$repo_type" && -n "$repo_name" ]] && [[ -d "$abs_path/$repo_type/$repo_name" ]]; then
+    # Handle cases:
+    if [[ "$rel_path" =~ ^public_html/wp-content/(plugins|themes)/[^/]+$ ]]; then
         REPO_TYPE="$repo_type"
         REPO_NAME="$repo_name"
+        return 0
+    elif [[ "$rel_path" =~ ^public_html/wp-content/(plugins|themes)[^/]*$ && -d "$site_path/public_html/wp-content/$repo_type" ]]; then
+        # Handle direct plugin/theme directory
+        local base=$(basename "$PWD")
+        if [[ -d "$site_path/public_html/wp-content/$repo_type/$base" ]]; then
+            REPO_TYPE="$repo_type"
+            REPO_NAME="$base"
+            return 0
+        fi
+    elif [[ "$rel_path" =~ ^public_html ]]; then
+        # We're in public_html but not in a specific repo - this is valid for push all
+        return 0
     fi
+    
+    return 1
 }
 
 push_single_repository() {
