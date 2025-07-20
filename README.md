@@ -1,21 +1,21 @@
-Personal WordPress development setup helper tool for VVV Vagrant.
+Personal WordPress development setup helper tool for VVV Vagrant extending `config.yml` for it's configuration.
 
-Similar to [Wordmove](https://github.com/welaika/wordmove/) while more minimal in implementation and featureset.
+Work in progress but implemented commands should mostly work.
 
-Reuses default VVV `config.yml` file to store commands related to pulling production site state.
+Main repository for this project with issue tracker is at [https://codeberg.org/jasalt/bvv](Codeberg).
 
-Uses rsync, ssh and expects WP-CLI to be installed on remotes, written on Bash (5.1.15).
 
-# Program logic
-## Initialization
+Pulls remote server state (database and `wp-content`) to local environment with `bvv pull` similar way to [Wordmove](https://github.com/welaika/wordmove/) and other tools.
+Expects (e.g. theme or plugin) changes to be versioned with `git` for pushing back to remote.
 
-Initialize `VVV_ROOT` pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
-1) `--vvv-root` command line argument
-2) `VVV_ROOT` environment variable
-3) search dir (having `Vagrantfile` and `./config/config.yml`) starting from cwd traversing to upper level directories up to filesystem root
+Depends on rsync, ssh and expects WP-CLI to be installed on remotes, written on Bash (5.1.15).
 
-## Config parsing
-Uses `yq` to parse `./config/config.yml` for uses it's data for commands:
+Additionally uses `lnav` for `bvv logs` command.
+
+# Docs
+
+## Extended VVV `config.yml` format
+Uses `yq` to parse `$VVV_ROOT/config/config.yml`:
 
 ```
 hosts:
@@ -67,17 +67,36 @@ hosts:
 
 ```
 
+
+
+## Implementation
+
+On startup, initializes `VVV_ROOT` pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
+1) `--vvv-root` command line argument
+2) `VVV_ROOT_PATH` environment variable
+3) search dir (having `Vagrantfile` and `./config/config.yml`) starting from cwd traversing to upper level directories up to filesystem root
+
 ## Commands
 
-Commands are ran based on the parsed data.
+### `bvv up`
+Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
+
+### `bvv down` & `bvv halt`
+Stop VVV box with `vagrant halt`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
+
 
 ### `bvv ssh` SSH to Vagrant box in the current folder
-Calculate relative path based on `cwd` mapped into `/srv/site-id/` in Vagrant box, `vagrant ssh` and `cd` into the relative path e.g. `vagrant ssh -c "cd /srv/site-id/ && bash -l"`.
+While editing plugin or theme files on host, sometimes it's necessary to run commands like `composer install` inside the Vagrant box.
+Instead of issuing `vagrant ssh` and navigating to the mapped folder manually, `bvv ssh` does the navigation to the mapped directory automatically.
 
-Simply `vagrant ssh` if ran outside VVV directory on host.
+```
+user@host ./my-plugin/ $ bvv ssh   # runs vagrant ssh and navigates to the mapped directory
+vagrant@vagrant ./my-plugin/ $ composer install    # installs happily using composer inside Vagrant
+```
 
-### `bvv up`
-Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT`.
+Calculates relative path based on `cwd` mapped into `/srv/site-id/` in Vagrant box, `vagrant ssh` and `cd` into the relative path e.g. `vagrant ssh -c "cd /srv/site-id/ && bash -l"`.
+
+When ran outside VVV directory on host it simply runs `vagrant ssh` in `VVV_ROOT_PATH`.
 
 ### `bvv pull [db|wp-content]` Pull live site state to development environment
 
@@ -85,9 +104,11 @@ The command is expected to be run from within `$VVV_ROOT/www/<site-id>/` so that
 
 Then site state is pulled from production roughly as in example script `pull.example.sh`.
 
-Validation should be done for having all required data before running command. FS paths and fqdn should be in correct format.
+Checks that required configuration is set and strips ending slashes from paths. Expects FS paths and fqdn should be in correct format.
 
-Uses rsync and wp-cli over ssh. Example procedure is in `pull.example.sh`. By default uses rsync to pull wp-content files, with optional exclusions listed in config, and then pulls database that is exported with wp-cli and gzipped, with --delete-source-files flag so the original file is deleted on server.
+Uses `rsync` and wp-cli over ssh. By default uses rsync to pull wp-content files, with optional exclusions listed in config, and then dumps and pulls remote database that is exported with wp-cli and gzipped, with `--delete-source-files` flag so the intermediate dump file is deleted from server.
+
+Tries to make sure that intermediate dump on remote would not be on a public web directory. Config directive `dump_path` allows changing remote dump path (not tested) which is `~/` by default.
 
 Usage examples:
 - `bvv pull db` pulls only database, removing the dump file afterwards
@@ -95,7 +116,7 @@ Usage examples:
 
 Extra flags:
 `--no-import` flag only downloads the database file, disables removing the dump file in development environment
-`--no-delete` disables removing the dump file in development environment
+`--no-delete` disables removing the dump file in development environment after the process
 
 ### `bvv logs [site-id]` opens all application logs with `lnav`
 
@@ -109,12 +130,9 @@ Usage examples:
 - `bvv logs site-id`
   - alternatively takes `site-id` as first positional argument so command can be run from anywhere and it's resolved from `config.yml`
 
-# Possible future features
-Not implemented for now.
+# Possible future features / draft ideas
 
-## Log reading commands (draft spec)
-
-### `bvv log` opens single log file with `less` (WIP)
+## `bvv log` opens single log file with `less` (draft spec)
 
  Different log types for Nginx/Apache:
 - Access
@@ -123,22 +141,7 @@ Not implemented for now.
 
 Additionally `wp-content/debug.log`.
 
-
-#### Usage examples (WIP)
-
-bvv log [access|error|static|debug]
-- expects to be run within vagrant
-- defaults to opening curren local `wp-content/debug.log` with `less`
-
-- Should it work from outside the VVV_ROOT? Probably should, but positional arg having two meanings would make things complicated e.g. `bvv log mysite` v.s. `bvv log access`
-
-##### Remote log reading (?)
-Unclear if this tool should include external log viewing, while `config.yml` could contain a single "inventory" of such information.
-
-bvv log [application-id] [?] [access|error|static|debug]
-- How to choose production vs. local dev? `--remote` flag?
-
-###### Yaml config `bvv.log_paths[]`:
+### Yaml config `bvv.log_paths[]`:
 Option A:
 - access: /path/to/access.log
 - error: /path/to/error.log
@@ -147,6 +150,20 @@ Option A:
 
 Option B:
 - log_paths=[/path/to/logs, /path/to/logs2]
+
+### Usage examples (WIP)
+
+bvv log [access|error|static|debug]
+- expects to be run within vagrant
+- defaults to opening curren local `wp-content/debug.log` with `less`
+
+- Should it work from outside the VVV_ROOT? Probably should, but positional arg having two meanings would make things complicated e.g. `bvv log mysite` v.s. `bvv log access`
+
+### Remote log reading (?)
+Unclear if this tool should include external log viewing, while `config.yml` could contain a single "inventory" of such information.
+
+bvv log [application-id] [?] [access|error|static|debug]
+- How to choose production vs. local dev? `--remote` flag?
 
 # Not implemented or considered for now
 
