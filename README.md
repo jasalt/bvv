@@ -22,7 +22,7 @@ hosts:
   ...
   site1:                           -- complete example with all features
     skip_provisioning: false
-    description: "Studio Laive site (sync from production)"
+    description: "Demo Site 1 (production)"
     repo: https://github.com/Varying-Vagrant-Vagrants/custom-site-template.git
     php: 8.3
     hosts:
@@ -50,7 +50,7 @@ hosts:
 	    - wp-content
   site2:                           -- minimal example with for pull command
     skip_provisioning: false
-    description: "Studio Laive site (sync from production)"
+    description: "Demo Site 1 (production)"
     repo: https://github.com/Varying-Vagrant-Vagrants/custom-site-template.git
     php: 8.3
     hosts:
@@ -67,7 +67,6 @@ hosts:
       fqdn: site2.fi
 
 ```
-
 
 
 ## Implementation
