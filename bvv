@@ -171,7 +171,42 @@ parse_site_config() {
 sync_wp_content() {
     echo "Downloading PROD wp-content files..."
     local exclusions=()
-    # Add exclusion logic here from config (skipped for brevity)
+
+    # Read exclusions from config if they exist
+    local config_file="$VVV_ROOT/config/config.yml"
+    
+    # Read plugin exclusions
+    local plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".plugins[]?" "$config_file" 2>/dev/null || true)
+    if [[ -n "$plugin_exclusions" ]]; then
+        while IFS= read -r plugin; do
+            [[ -n "$plugin" ]] && exclusions+=("--exclude" "plugins/$plugin")
+        done <<< "$plugin_exclusions"
+    fi
+    
+    # Read theme exclusions
+    local theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".themes[]?" "$config_file" 2>/dev/null || true)
+    if [[ -n "$theme_exclusions" ]]; then
+        while IFS= read -r theme; do
+            [[ -n "$theme" ]] && exclusions+=("--exclude" "themes/$theme")
+        done <<< "$theme_exclusions"
+    fi
+    
+    # Read other exclusions
+    local other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".other[]?" "$config_file" 2>/dev/null || true)
+    if [[ -n "$other_exclusions" ]]; then
+        while IFS= read -r other; do
+            [[ -n "$other" ]] && exclusions+=("--exclude" "$other")
+        done <<< "$other_exclusions"
+    fi
+    
+    # If no exclusions found in config, use defaults
+    if [[ ${#exclusions[@]} -eq 0 ]]; then
+        exclusions+=(
+            "--exclude" "object-cache.php"
+            "--exclude" "debug.log"
+        )
+    fi
+
     rsync -av --progress --delete "${exclusions[@]}" "$ssh_host:$www_path/wp-content/" "$VVV_ROOT/www/$site_id/public_html/wp-content/"
 }
 
