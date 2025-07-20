@@ -91,7 +91,7 @@ get_relative_path() {
 
     # Check if we're inside VVV directory
     if [[ "$current_dir" == "$vvv_root"* ]]; then
-        local rel_path="${current_dir#$vvv_root}"
+        local rel_path="${current_dir#"$vvv_root"}"
         rel_path="${rel_path#/}"
 
         # Map to /srv/ path in vagrant box
@@ -178,7 +178,7 @@ cmd_ssh() {
 
 get_site_id() {
     local vvv_root="$1"
-    local rel_path="${PWD##$vvv_root}"
+    local rel_path="${PWD##"$vvv_root"}"
     rel_path="${rel_path#/}"
     if [[ "${rel_path%%/*}" != "www" ]]; then
         echo >&2 "Error: Must be executed within $vvv_root/www"
@@ -265,7 +265,7 @@ sync_database() {
 
     echo "Exporting PROD database"
 	# NOTE dump_file moving not tested
-    ssh "$ssh_host" "cd $www_path && wp db export ~/wpdb.sql && gzip -f ~/wpdb.sql && if [ '$dump_path' != '\$HOME' ] && [ '$dump_path' != '~' ]; then mv ~/wpdb.sql.gz $dump_path/$dump_file; fi"
+    ssh "$ssh_host" "cd \"$www_path\" && wp db export ~/wpdb.sql && gzip -f ~/wpdb.sql && if [ \"$dump_path\" != '\$HOME' ] && [ \"$dump_path\" != '~' ]; then mv ~/wpdb.sql.gz \"$dump_path/$dump_file\"; fi"
 
     echo "Downloading database"
     rsync -av --progress --remove-source-files "$ssh_host:$dump_path/$dump_file" ./public_html/
@@ -346,21 +346,21 @@ cmd_push() {
     if [[ -n "$push_all_flag" ]]; then
         # Push all registered repositories
         echo "Deploying all repositories for site $site_id"
-        
+
         # Get plugin repositories
         readarray -t plugins < <(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null)
         for plugin in "${plugins[@]}"; do
             [[ -n "$plugin" ]] || continue
             push_single_repository "$site_id" "plugins" "$plugin"
         done
-        
+
         # Get theme repositories
         readarray -t themes < <(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null)
         for theme in "${themes[@]}"; do
             [[ -n "$theme" ]] || continue
             push_single_repository "$site_id" "themes" "$theme"
         done
-        
+
     else
         # Push single repository
         if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -368,19 +368,19 @@ cmd_push() {
             cmd_push "true"
             return
         fi
-        
+
         # Get repository type and name from current path
         local repo_path
         local repo_type
         local repo_name
         get_repo_info "$site_id"
-        
+
         if [[ -z "$repo_type" || -z "$repo_name" ]]; then
             # If we can't determine repo but are in site directory, push all repos
             cmd_push "true"
             return
         fi
-        
+
         push_single_repository "$site_id" "$repo_type" "$repo_name"
     fi
 }
@@ -388,17 +388,17 @@ cmd_push() {
 get_repo_info() {
     local site_id="$1"
     local site_path="$VVV_ROOT/www/$site_id"
-    
+
     # Check if we're inside the site directory
     if [[ "$PWD" != "$site_path/"* ]]; then
         echo "Error: Must be inside a site directory ($site_path)" >&2
         return 1
     fi
-    
+
     # Get path relative to site root
-    local rel_path="${PWD#$site_path/}"
+    local rel_path="${PWD#"$site_path/"}"
     IFS='/' read -r _ _ repo_type repo_name remaining <<< "$rel_path"
-    
+
     # Handle cases:
     if [[ "$rel_path" =~ ^public_html/wp-content/(plugins|themes)/[^/]+$ ]]; then
         REPO_TYPE="$repo_type"
@@ -416,7 +416,7 @@ get_repo_info() {
         # We're in public_html but not in a specific repo - this is valid for push all
         return 0
     fi
-    
+
     return 1
 }
 
@@ -424,26 +424,27 @@ push_single_repository() {
     local site_id="$1"
     local repo_type="$2"
     local repo_name="$3"
-    
+
     # Parse configuration
     parse_site_config "$site_id" || exit 1
-    
+
     # Confirm the repo exists locally
     local repo_path="$VVV_ROOT/www/$site_id/public_html/wp-content/$repo_type/$repo_name"
     if [[ ! -d "$repo_path" ]]; then
         echo "Error: Repository not found: $repo_path" >&2
         exit 1
     fi
-    
+
     # Push to git origin
     pushd "$repo_path" >/dev/null
     echo "Executing git push in $(pwd)"
     git push
     popd >/dev/null
-    
+
     # Update on remote server
     local remote_path="$www_path/wp-content/$repo_type/$repo_name"
     echo "Executing git pull on remote server..."
+    # Note: $remote_path expansion is intentional here to use the local value
     ssh "$ssh_host" "cd \"$remote_path\" && git pull"
 }
 
