@@ -33,7 +33,7 @@ hosts:
         WP_DEBUG_LOG: true
         WP_DISABLE_FATAL_ERROR_HANDLER: true
       live_url: https://site1.fi        -- ignored (used by VVV)
-    pull:
+    bvv:
       ssh_host: site1-server
       www_path: /home/master/site1/public_html
       fqdn: example.com     -- get's search-replaced with site[hosts][0]
@@ -60,7 +60,7 @@ hosts:
         WP_DEBUG_LOG: true
         WP_DISABLE_FATAL_ERROR_HANDLER: true
       live_url: https://site2.fi
-    pull:
+    bvv:
       ssh_host: site2-server
       www_path: /home/master/site2/public_html
       fqdn: site2.fi
