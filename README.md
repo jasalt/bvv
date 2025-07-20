@@ -79,7 +79,7 @@ Simply `vagrant ssh` if ran outside VVV directory on host.
 ### `bvv up`
 Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT`.
 
-### `bvv pull` Pull live site state to development environment
+### `bvv pull [db|wp-content]` Pull live site state to development environment
 
 The command is expected to be run from within `$VVV_ROOT/www/<site-id>/` so that the `site-id` can be parsed and the according pull config can be read from the `config.yml`.
 
@@ -89,30 +89,39 @@ Validation should be done for having all required data before running command. F
 
 Uses rsync and wp-cli over ssh. Example procedure is in `pull.example.sh`. By default uses rsync to pull wp-content files, with optional exclusions listed in config, and then pulls database that is exported with wp-cli and gzipped, with --delete-source-files flag so the original file is deleted on server.
 
-#### `bvv pull db` pulls only database, removing the dump file afterwards
+Usage examples:
+- `bvv pull db` pulls only database, removing the dump file afterwards
+- `bvv pull wp-content` pulls only wp-content files
 
-`--no-import` flag only downloads the database file, disables removing the dump file
-`--no-delete` disables removing the dump file
+Extra flags:
+`--no-import` flag only downloads the database file, disables removing the dump file in development environment
+`--no-delete` disables removing the dump file in development environment
 
-#### `bvv pull wp-content` pulls only wp-content files
+### `bvv logs [site-id]` opens all application logs with `lnav`
+
+Lnav simplifies handling multiple log files at once but needs to be installed on remote. If it is missing, add it to `~/.local/bin/lnav`? For now, expect it to be installed.
+
+VVV keeps site specific log files in `log` folder adjacent to `wp-content`, and `wp-content/debug.log`.
+
+Usage examples:
+- `bvv logs` opens all VVV log files for current application in `lnav` e.g. `lnav /home/user/vvv/www/mysite/public_html/wp-content/debug.log /home/user/vvv/www/mysite/log/`
+  - expects `cwd` to be within `$VVV_ROOT/www/<site-id>/`
+- `bvv logs site-id`
+  - alternatively takes `site-id` as first positional argument so command can be run from anywhere and it's resolved from `config.yml`
 
 # Possible future features
 Not implemented for now.
 
-## Log commands
-### `bvv logs` (draft spec)
-Shortcut to open `less` or `lnav` for different logs across applications.
+## Log reading commands (draft spec)
 
-Different log types for Nginx/Apache:
+### `bvv log` opens single log file with `less` (WIP)
+
+ Different log types for Nginx/Apache:
 - Access
 - Error
 - Static
 
 Additionally `wp-content/debug.log`.
-
-Lnav could simplify handling multiple log files but needs to be installed on remote. If it is missing, add it to `~/.local/bin/lnav`?
-
-#### Yaml config directive `bvv.log_paths[]`
 
 
 #### Usage examples (WIP)
@@ -129,7 +138,7 @@ Unclear if this tool should include external log viewing, while `config.yml` cou
 bvv log [application-id] [?] [access|error|static|debug]
 - How to choose production vs. local dev? `--remote` flag?
 
-###### Yaml config:
+###### Yaml config `bvv.log_paths[]`:
 Option A:
 - access: /path/to/access.log
 - error: /path/to/error.log
