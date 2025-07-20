@@ -38,15 +38,16 @@ hosts:
       www_path: /home/master/site1/public_html
       fqdn: example.com     -- get's search-replaced with site[hosts][0]
 	  dump-path: /tmp       -- optional path to store temporary db dump, server home
-	  wp-content-exclude:
-	    plugins: [myplugin1, myplugin2] -- optional, one or many
-		themes: [mytheme]               -- optional, one or many
-		other: [object-cache.php]       -- optional, one or many
+	  repositories:         -- excluded from pull command rsync
+	    plugins: [myplugin1, myplugin2] -- git repositories
+		themes: [mytheme]
+      wp-content-exclude: [object-cache.php]  -- excluded from wp-content sync
 	  post-commands:
 	    deactivate_plugins = [myplugin3, myplugin4]
 	    create_admin = true                            -- creates admin user "admin" "password"
 	    extra_commands = [wp cache flush, echo hello]  -- executed in vagrant box afterwards
-
+      repositories:
+	    - wp-content
   site2:                           -- minimal example with for pull command
     skip_provisioning: false
     description: "Studio Laive site (sync from production)"
@@ -106,9 +107,9 @@ Then site state is pulled from production roughly as in example script `pull.exa
 
 Checks that required configuration is set and strips ending slashes from paths. Expects FS paths and fqdn should be in correct format.
 
-Uses `rsync` and wp-cli over ssh. By default uses rsync to pull wp-content files, with optional exclusions listed in config, and then dumps and pulls remote database that is exported with wp-cli and gzipped, with `--delete-source-files` flag so the intermediate dump file is deleted from server.
+Uses `rsync` and wp-cli over ssh. By default uses rsync to pull wp-content files, excluding configured  plugin and theme repositories and extra exclusions in `wp-content-exclude`, and then dumps and pulls remote database that is exported with wp-cli and gzipped, with `--delete-source-files` flag so the intermediate dump file is deleted from server.
 
-Tries to make sure that intermediate dump on remote would not be on a public web directory. Config directive `dump_path` allows changing remote dump path (not tested) which is `~/` by default.
+Intermediate dump is by default saved in home folder by default to keep it out from public web directories and it's location can be changed with directive `dump_path` (not tested).
 
 Usage examples:
 - `bvv pull db` pulls only database, removing the dump file afterwards
@@ -117,6 +118,34 @@ Usage examples:
 Extra flags:
 `--no-import` flag only downloads the database file, disables removing the dump file in development environment
 `--no-delete` disables removing the dump file in development environment after the process
+
+### `bvv push [--all]` deploys local git repository changes to site's remote WP instance
+
+Items defined as repositories get excluded from `pull` command's `wp-content` rsync. They are also available for "pushing" or deploying repository changes to remote site.
+```yaml
+...
+	  repositories:
+	    plugins: [myplugin1, myplugin2]
+		themes: [mytheme]
+...
+```
+
+During invocation when `cwd` is in git repository that is defined in `config.yml`, pushes it's changes (to git remote) and pulls changes on remote WP instance by ssh'ing on it and cd'ing to the appropriate directory.
+
+Otherwise when issued within `$VVV_ROOT/www/<site-id>/` (not within registered repository directory), or with `--all` flag, deploys all git repositories defined in `config.yml` (`repositories.themes[]` and `repositories.plugins[]`).
+
+#### TODO Implementation example
+
+Yaml config includes plugin `site-id.repositories.plugins[myplugin1]` which is in site's `wp-content/plugins/myplugin/` and should be pushed and later pulled on remote WP instance.
+
+```
+# Should identify if ran inside plugin1/ directory so can proceed
+git push
+ssh <site-id.bvv.ssh_host> "cd <site-id.bvv.www_path>/wp-content/plugins/<plugin-id> && git pull"
+```
+
+By default this is done for the current plugin/theme directory which when it's specified under repositories in `config.yml`.
+Otherwise when outside plugin directory but within a VVV site directory this should be done in a loop for all registered theme and plugin directories.
 
 ### `bvv logs [site-id]` opens all application logs with `lnav`
 
