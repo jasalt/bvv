@@ -193,23 +193,11 @@ parse_site_config() {
     local site_id="$1"
     local config_file="$VVV_ROOT/config/config.yml"
 
-    declare -A config_map=(
-        [ssh_host]=".sites.\"$site_id\".bvv.ssh_host"
-        [www_path]=".sites.\"$site_id\".bvv.www_path"
-        [fqdn]=".sites.\"$site_id\".bvv.fqdn"
-        [dev_domain]=".sites.\"$site_id\".hosts[0]"
-        [dump_path]=".sites.\"$site_id\".bvv.dump_path // \"~\""
-    )
-
-    for key in "${!config_map[@]}"; do
-        local value
-        value=$(yq -e -r "${config_map[$key]}" "$config_file" 2>/dev/null)
-        [[ -z "$value" || "$value" == "null" ]] && {
-            >&2 echo "Missing $key in config for site $site_id"
-            return 1
-        }
-        declare -g "$key"="$value"
-    done
+	ssh_host=$(yq -e -r ".sites.\"$site_id\".bvv.ssh_host" "$config_file" 2>/dev/null)
+	www_path=$(yq -e -r ".sites.\"$site_id\".bvv.www_path" "$config_file" 2>/dev/null)
+	fqdn=$(yq -e -r ".sites.\"$site_id\".bvv.fqdn" "$config_file" 2>/dev/null)
+	dev_domain=$(yq -e -r ".sites.\"$site_id\".hosts[0]" "$config_file" 2>/dev/null)
+	dump_path=$(yq -e -r ".sites.\"$site_id\".bvv.dump_path // \"~\"" "$config_file" 2>/dev/null)
 
     # Remove trailing slashes to prevent double slashes in paths
     www_path="${www_path%/}"
