@@ -202,7 +202,8 @@ parse_site_config() {
     )
 
     for key in "${!config_map[@]}"; do
-        local value=$(yq -e -r "${config_map[$key]}" "$config_file" 2>/dev/null)
+        local value
+        value=$(yq -e -r "${config_map[$key]}" "$config_file" 2>/dev/null)
         [[ -z "$value" || "$value" == "null" ]] && {
             >&2 echo "Missing $key in config for site $site_id"
             return 1
@@ -225,7 +226,8 @@ sync_wp_content() {
     local config_file="$VVV_ROOT/config/config.yml"
 
     # Read plugin exclusions
-    local plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null || true)
+    local plugin_exclusions
+    plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$plugin_exclusions" ]]; then
         while IFS= read -r plugin; do
             [[ -n "$plugin" ]] && exclusions+=("--exclude" "plugins/$plugin")
@@ -233,7 +235,8 @@ sync_wp_content() {
     fi
 
     # Read theme exclusions
-    local theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null || true)
+    local theme_exclusions
+    theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$theme_exclusions" ]]; then
         while IFS= read -r theme; do
             [[ -n "$theme" ]] && exclusions+=("--exclude" "themes/$theme")
@@ -241,7 +244,8 @@ sync_wp_content() {
     fi
 
     # Read other exclusions
-    local other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".other[]?" "$config_file" 2>/dev/null || true)
+    local other_exclusions
+    other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\".other[]?" "$config_file" 2>/dev/null || true)
     if [[ -n "$other_exclusions" ]]; then
         while IFS= read -r other; do
             [[ -n "$other" ]] && exclusions+=("--exclude" "$other")
