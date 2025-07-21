@@ -1,12 +1,20 @@
 Personal WordPress development setup helper tool for VVV Vagrant extending `config.yml` for it's configuration.
 
-Depends on `yq`, `rsync`, `ssh` and expects WP-CLI to be available on remote WP instances. Additionally uses `lnav` for `bvv logs` command. Written on Bash 5.1
+Depends on `yq`, `rsync`, `ssh` and expects WP-CLI to be available on remote WP instances. Additionally uses `lnav` for `bvv logs` command. Written and tested with Bash 5.1 on Linux.
 
-Work in progress but implemented commands should mostly work. See issues section in bottom of this document.
+Work in progress but implemented commands should mostly work. See issues section in bottom of this document. Windows is not supported for now.
 
 Main repository for this project with issue tracker is at [https://codeberg.org/jasalt/bvv](Codeberg).
 
 # Docs
+
+With configuration set in VVV `config.yml` and box provisioned, normal workflow for using the tool in plugin or theme development:
+
+- `bvv up` starts VVV
+- `bvv pull` pulls live application state to development environment
+- `bvv logs` (in new terminal) shows logs during development
+- *coding*
+- `bvv push` deploys changes in git repositories to live server
 
 ## Extended VVV `config.yml` format
 
@@ -206,10 +214,14 @@ Only database and `wp-content` is are downloaded from live site. Other files suc
 
 Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require modifications to work with Docker provider.
 
+# TODO
+- Check `~/vvv-local` as default location
+
 # Issues
 
 - Uses `set -x` for verbose debug output for now.
 - `pull` broken outside plugin/theme repo but `bvv pull -all` works
 - `pull` --no-import/--no-delete flags not implemented
+- Windows is not supported. Rewrite with Rust clap & duct might help.
 
 Issues can be raised on Codeberg issue tracker or by sending me a message.
