@@ -49,9 +49,9 @@ hosts:
         plugins: [myplugin1, myplugin2] -- git repositories
         themes: [mytheme]
       wp-content-exclude: [debug.log, object-cache.php]  -- excluded from wp-content sync
-      deactivate_plugins: [myplugin3, myplugin4]
+      deactivate_plugins: [wp-ses, wp-sentry-integration]
       create_admin: true                            -- creates admin user "admin" "password"
-      post_commands: [wp cache flush, echo hello]  -- executed in vagrant box afterwards
+      post_commands: [echo hello world]  -- executed in vagrant box afterwards
   site2:                           -- minimal example with pull functionality
     skip_provisioning: false
     description: "Demo Site 1 (production)"
