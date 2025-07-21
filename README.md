@@ -2,9 +2,11 @@ Personal WordPress development setup helper tool for VVV Vagrant extending `conf
 
 Depends on `yq`, `rsync`, `ssh` and expects WP-CLI to be available on remote WP instances. Additionally uses `lnav` for `bvv logs` command. Written and tested with Bash 5.1 on Linux.
 
-Work in progress but implemented commands should mostly work. See issues section in bottom of this document. Windows is not supported for now.
+Work in progress but implemented commands should mostly work. See issues section in bottom of this document.
 
-Main repository for this project with issue tracker is at [https://codeberg.org/jasalt/bvv](Codeberg).
+Main repository for this project with issue tracker is at [Codeberg](https://codeberg.org/jasalt/bvv).
+
+Windows is not supported for now.
 
 # Docs
 
