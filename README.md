@@ -10,9 +10,9 @@ Main repository for this project with issue tracker is at [https://codeberg.org/
 
 ## Extended VVV `config.yml` format
 
-Config format is may change slightly in future.
-
 Custom configuration used by the tool is defined under `bvv` keyword in VVV [custom site template](https://github.com/Varying-Vagrant-Vagrants/custom-site-template/blob/master/README.md) located at `$VVV_ROOT/config/config.yml`.
+
+The config format is not stable and may change, consider this when updating. Warnings for this can be found in commit messages.
 
 ```
 hosts:
@@ -39,10 +39,9 @@ hosts:
         plugins: [myplugin1, myplugin2] -- git repositories
         themes: [mytheme]
       wp-content-exclude: [debug.log, object-cache.php]  -- excluded from wp-content sync
-      post-commands:
-        deactivate_plugins: [myplugin3, myplugin4]
-        create_admin = true                            -- creates admin user "admin" "password"
-        extra_commands = [wp cache flush, echo hello]  -- executed in vagrant box afterwards
+      deactivate_plugins: [myplugin3, myplugin4]
+      create_admin: true                            -- creates admin user "admin" "password"
+      post_commands: [wp cache flush, echo hello]  -- executed in vagrant box afterwards
   site2:                           -- minimal example with pull functionality
     skip_provisioning: false
     description: "Demo Site 1 (production)"
@@ -206,11 +205,11 @@ Non-standard WP file structure not tested.
 Only database and `wp-content` is are downloaded from live site. Other files such as WordPress Core files are not taken into account and need to be kept up to date manually. There could be a version check during sync that could warn if versions differ.
 
 Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require modifications to work with Docker provider.
+
 # Issues
 
+- Uses `set -x` for verbose debug output for now.
 - `pull` broken outside plugin/theme repo but `bvv pull -all` works
-- `pull` does not exclude `wp-content-exclude` config entries in any way
 - `pull` --no-import/--no-delete flags not implemented
-- `pull` post-commands not implemented
 
 Issues can be raised on Codeberg issue tracker or by sending me a message.

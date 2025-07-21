@@ -287,8 +287,34 @@ run_post_commands() {
         && wp --path='$vvv_box_path' option update admin_email 'dev-email@flywheel.test' \\
         && wp --path='$vvv_box_path' cache flush"
 
-    # Add conditional post-commands here TODO
-	# Run each post-command individually, cd'ing first to $vvv_box_path
+    # Execute any configured post-commands
+    local config_file="$VVV_ROOT/config/config.yml"
+    local post_commands=()
+    if [[ -f "$config_file" ]]; then
+        readarray -t post_commands < <(yq -e -r ".sites.\"$site_id\".bvv.\"post_commands\"[]? // \"\"" "$config_file" 2>/dev/null) || true
+    
+        for cmd in "${post_commands[@]}"; do
+            [[ -n "$cmd" ]] || continue
+            echo "Running post-command: $cmd"
+            vagrant ssh -c "cd '$vvv_box_path' && $cmd"
+        done
+
+        # Handle special post-commands
+        local create_admin
+        create_admin=$(yq -e -r ".sites.\"$site_id\".bvv.create_admin // \"\"" "$config_file" 2>/dev/null) || true
+        if [[ "$create_admin" == "true" ]]; then
+            echo "Creating admin user"
+            vagrant ssh -c "cd '$vvv_box_path' && wp user create admin dev-email@flywheel.test --role=administrator --user_pass=password --skip-plugins && wp user meta update admin locale en_US"
+        fi
+
+        local deactivate_plugins=()
+        readarray -t deactivate_plugins < <(yq -e -r ".sites.\"$site_id\".bvv.deactivate_plugins[]? // \"\"" "$config_file" 2>/dev/null) || true
+        for plugin in "${deactivate_plugins[@]}"; do
+            [[ -n "$plugin" ]] || continue
+            echo "Deactivating plugin: $plugin"
+            vagrant ssh -c "cd '$vvv_box_path' && wp plugin deactivate '$plugin'"
+        done
+    fi
 }
 
 cmd_pull() {
