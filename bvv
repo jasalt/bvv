@@ -397,7 +397,7 @@ get_repo_info() {
 
     # Get path relative to site root
     local rel_path="${PWD#"$site_path/"}"
-    IFS='/' read -r _ _ repo_type repo_name remaining <<< "$rel_path"
+    IFS='/' read -r _ _ repo_type repo_name _ <<< "$rel_path"
 
     # Handle cases:
     if [[ "$rel_path" =~ ^public_html/wp-content/(plugins|themes)/[^/]+$ ]]; then
