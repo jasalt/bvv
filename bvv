@@ -284,10 +284,11 @@ run_post_commands() {
     # Always run these commands:
     vagrant ssh -c "wp --path='$vvv_box_path' \\
         search-replace '//$fqdn' '//$dev_domain' \\
-        && wp option update admin_email 'dev-email@flywheel.test' \\
-        && wp cache flush"
+        && wp --path='$vvv_box_path' option update admin_email 'dev-email@flywheel.test' \\
+        && wp --path='$vvv_box_path' cache flush"
 
     # Add conditional post-commands here TODO
+	# Run each post-command individually, cd'ing first to $vvv_box_path
 }
 
 cmd_pull() {
