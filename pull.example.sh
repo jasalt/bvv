@@ -82,7 +82,7 @@ vagrant ssh -c "wp --path=$VVV_WWW_PATH search-replace "//$PROD_DOMAIN" "//$DEV_
 
 ## vagrant ssh -c "wp --path=$VVV_WWW_PATH search-replace \"https://\" \"http://\" --dry-run"  # comment this to use https
 
-vagrant ssh -c "wp --path=$VVV_WWW_PATH option update admin_email "dev-email@flywheel.test" --skip-plugins"
+vagrant ssh -c "wp --path=$VVV_WWW_PATH option update admin_email 'dev-email@flywheel.test' --skip-plugins"
 vagrant ssh -c "wp --path=$VVV_WWW_PATH cache flush --skip-plugins"
 # vagrant ssh -c "wp --path=$VVV_WWW_PATH plugin deactivate google-calendar-events --skip-plugins"
 vagrant ssh -c "wp --path=$VVV_WWW_PATH user create admin admin@example.com --role=administrator --user_pass=password --skip-plugins && wp --path=$VVV_WWW_PATH user meta update admin locale en_US"
