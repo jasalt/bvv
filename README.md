@@ -136,19 +136,6 @@ During invocation when `cwd` is in git repository that is defined in `config.yml
 
 Otherwise when issued within `$VVV_ROOT/www/<site-id>/` (not within registered repository directory), or with `--all` flag, deploys all git repositories defined in `config.yml` (`repositories.themes[]` and `repositories.plugins[]`).
 
-#### TODO Implementation example
-
-Yaml config includes plugin `site-id.repositories.plugins[myplugin1]` which is in site's `wp-content/plugins/myplugin/` and should be pushed and later pulled on remote WP instance.
-
-```
-# Should identify if ran inside plugin1/ directory so can proceed
-git push
-ssh <site-id.bvv.ssh_host> "cd <site-id.bvv.www_path>/wp-content/plugins/<plugin-id> && git pull"
-```
-
-By default this is done for the current plugin/theme directory which when it's specified under repositories in `config.yml`.
-Otherwise when outside plugin directory but within a VVV site directory this should be done in a loop for all registered theme and plugin directories.
-
 ### `bvv logs [site-id]` opens all application logs with `lnav`
 
 Lnav simplifies handling multiple log files at once but needs to be installed on remote. If it is missing, add it to `~/.local/bin/lnav`? For now, expect it to be installed.
