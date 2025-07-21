@@ -275,13 +275,22 @@ sync_database() {
 run_post_commands() {
     local vvv_box_path="/srv/www/$1/public_html"
 
+	if [[ -z "$fqdn" || "$fqdn" == "null" ]]; then
+		>&2 echo "Missing fqdn in config for site $site_id"
+		return 1
+	fi
+	if [[ -z "$dev_domain" || "$dev_domain" == "null" ]]; then
+		>&2 echo "Missing dev_domain in config for site $site_id"
+		return 1
+	fi
+
     # Always run these commands:
     vagrant ssh -c "wp --path='$vvv_box_path' \\
         search-replace '//$fqdn' '//$dev_domain' \\
         && wp option update admin_email 'dev-email@flywheel.test' \\
         && wp cache flush"
 
-    # Add conditional post-commands here
+    # Add conditional post-commands here TODO
 }
 
 cmd_pull() {
