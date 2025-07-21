@@ -1,24 +1,16 @@
 Personal WordPress development setup helper tool for VVV Vagrant extending `config.yml` for it's configuration.
 
-Work in progress but implemented commands should mostly work.
+Depends on `yq`, `rsync`, `ssh` and expects WP-CLI to be available on remote WP instances. Additionally uses `lnav` for `bvv logs` command. Written on Bash 5.1
 
-Config format may change slightly in future.
-
-See issues section in bottom of this document.
+Work in progress but implemented commands should mostly work. See issues section in bottom of this document.
 
 Main repository for this project with issue tracker is at [https://codeberg.org/jasalt/bvv](Codeberg).
-
-
-Pulls remote server state (database and `wp-content`) to local environment with `bvv pull` similar way to [Wordmove](https://github.com/welaika/wordmove/) and other tools.
-Expects (e.g. theme or plugin) changes to be versioned with `git` for pushing back to remote.
-
-Depends on rsync, ssh and expects WP-CLI to be installed on remotes, written on Bash (5.1.15).
-
-Additionally uses `lnav` for `bvv logs` command.
 
 # Docs
 
 ## Extended VVV `config.yml` format
+
+Config format is may change slightly in future.
 
 Custom configuration used by the tool is defined under `bvv` keyword in VVV [custom site template](https://github.com/Varying-Vagrant-Vagrants/custom-site-template/blob/master/README.md) located at `$VVV_ROOT/config/config.yml`.
 
@@ -46,9 +38,9 @@ hosts:
       repositories:         -- excluded from pull command rsync
         plugins: [myplugin1, myplugin2] -- git repositories
         themes: [mytheme]
-      wp-content-exclude: [object-cache.php, advanced-cache.php]  -- excluded from wp-content sync
+      wp-content-exclude: [debug.log, object-cache.php]  -- excluded from wp-content sync
       post-commands:
-        deactivate_plugins = [myplugin3, myplugin4]
+        deactivate_plugins: [myplugin3, myplugin4]
         create_admin = true                            -- creates admin user "admin" "password"
         extra_commands = [wp cache flush, echo hello]  -- executed in vagrant box afterwards
   site2:                           -- minimal example with pull functionality
@@ -71,16 +63,9 @@ hosts:
 
 ```
 
-## Implementation
-
-On startup, initializes `VVV_ROOT` pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
-1) `--vvv-root` command line argument
-2) `VVV_ROOT_PATH` environment variable
-3) dynamically identify current VVV root directory (having `Vagrantfile` and `./config/config.yml`) by traversing upwards in the directory tree
-
-The tool should function without any environment variable setup and also allow setting the VVV path explicitly if needed.
 
 ## Commands
+Most functionality expects that current working directory is within the VVV's `www` directory.
 
 ### `bvv up`
 Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
@@ -103,6 +88,8 @@ When ran outside VVV directory on host it simply runs `vagrant ssh` in `VVV_ROOT
 
 ### `bvv pull [db|wp-content]` Pull live site state to development environment
 
+Pulls remote server state (database and `wp-content`) to local environment with `bvv pull` similar way to [Wordmove](https://github.com/welaika/wordmove/) and other tools. Local changes in `wp-content` outside registered repositories are overridden and extra files not existing on remote are deleted. Database is also dropped re-initialized from remote dump.
+
 The command is expected to be run from within `$VVV_ROOT/www/<site-id>/` so that the `site-id` can be parsed and the according pull config can be read from the `config.yml`.
 
 Then site state is pulled from production roughly as in example script `pull.example.sh`.
@@ -122,6 +109,10 @@ Extra flags:
 `--no-delete` disables removing the dump file in development environment after the process
 
 ### `bvv push [--all]` deploys local git repository changes to site's remote WP instance
+
+Pushing changes back to remote WP instance is accomplished with `git` and `bvv push` helper function pushes the current or all site's registered git repositories and pulls the changes on remote WP instance.
+
+If remote WP instance cannot pull the changes, conflict resolution is left for user. Repository deploy key with read permission is also expected to be configured for both local environment and at the WP remote.
 
 Items defined as repositories get excluded from `pull` command's `wp-content` rsync. They are also available for "pushing" or deploying repository changes to remote site.
 ```yaml
@@ -160,6 +151,16 @@ Usage examples:
   - expects `cwd` to be within `$VVV_ROOT/www/<site-id>/`
 - `bvv logs site-id`
   - alternatively takes `site-id` as first positional argument so command can be run from anywhere and it's resolved from `config.yml`
+
+
+## Customizing $VVV_ROOT
+
+The tool should function without any environment variable setup and also allow setting the VVV path explicitly if needed.
+
+On startup `$VVV_ROOT` is initialized pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
+1) `--vvv-root` command line argument
+2) `VVV_ROOT_PATH` environment variable
+3) dynamically identify current VVV root directory (having `Vagrantfile` and `./config/config.yml`) by traversing upwards in the directory tree
 
 # Possible future features / draft ideas
 
@@ -207,7 +208,9 @@ Only database and `wp-content` is are downloaded from live site. Other files suc
 Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require modifications to work with Docker provider.
 # Issues
 
-- `bvv pull` broken outside plugin/theme repo but `bvv pull -all` works
-- Shellcheck warnings
+- `pull` broken outside plugin/theme repo but `bvv pull -all` works
+- `pull` does not exclude `wp-content-exclude` config entries in any way
+- `pull` --no-import/--no-delete flags not implemented
+- `pull` post-commands not implemented
 
 Issues can be raised on Codeberg issue tracker or by sending me a message.
