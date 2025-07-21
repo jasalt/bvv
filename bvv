@@ -145,7 +145,7 @@ cmd_logs() {
     local logs=()
 
     [[ -f "$debug_log" ]] && logs+=("$debug_log")
-    [[ -d "$log_dir" ]] && logs+=($log_dir/*.log)
+    [[ -d "$log_dir" ]] && logs+=("$log_dir"/*.log)
 
     if [[ ${#logs[@]} -eq 0 ]]; then
         echo "No log files found for site $site_id" >&2
@@ -257,6 +257,7 @@ sync_database() {
 
     echo "Exporting PROD database"
 	# NOTE dump_file moving not tested
+	# shellcheck disable=SC2029
     ssh "$ssh_host" "cd \"$www_path\" && wp db export ~/wpdb.sql && gzip -f ~/wpdb.sql && if [ \"$dump_path\" != '\$HOME' ] && [ \"$dump_path\" != '~' ]; then mv ~/wpdb.sql.gz \"$dump_path/$dump_file\"; fi"
 
     echo "Downloading database"
@@ -299,7 +300,8 @@ do_pull() {
     local sync_db=$2
 
     # Get current site ID
-    local site_id=$(get_site_id "$VVV_ROOT")
+    local site_id
+    site_id=$(get_site_id "$VVV_ROOT")
 
     # Exit if we're not in a site directory
     [[ -z "$site_id" ]] && exit 1
@@ -398,9 +400,12 @@ get_repo_info() {
         return 0
     elif [[ "$rel_path" =~ ^public_html/wp-content/(plugins|themes)[^/]*$ && -d "$site_path/public_html/wp-content/$repo_type" ]]; then
         # Handle direct plugin/theme directory
-        local base=$(basename "$PWD")
+        local base
+        base=$(basename "$PWD")
         if [[ -d "$site_path/public_html/wp-content/$repo_type/$base" ]]; then
+			# shellcheck disable=SC2034
             REPO_TYPE="$repo_type"
+			# shellcheck disable=SC2034
             REPO_NAME="$base"
             return 0
         fi
@@ -437,6 +442,7 @@ push_single_repository() {
     local remote_path="$www_path/wp-content/$repo_type/$repo_name"
     echo "Executing git pull on remote server..."
     # Note: $remote_path expansion is intentional here to use the local value
+	# shellcheck disable=SC2029
     ssh "$ssh_host" "cd \"$remote_path\" && git pull"
 }
 
