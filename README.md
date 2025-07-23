@@ -33,7 +33,7 @@ hosts:
     repo: https://github.com/Varying-Vagrant-Vagrants/custom-site-template.git
     php: 8.3
     hosts:
-      - site1.test                      -- used for search-replacing the fqdn
+      - site1.test                      -- used for search-replacing the fqdns
     custom:
       wpconfig_constants:
         WP_DEBUG: true
@@ -43,7 +43,7 @@ hosts:
     bvv:
       ssh_host: site1-server
       www_path: /home/master/site1/public_html
-      fqdn: example.com     -- get's search-replaced with site's first hosts entry[hosts][0]
+      fqdns: [example.com, www.example.com]   -- search-replaced with site's first hosts entry
       dump-path: /tmp       -- optional path to store temporary db dump, server home
       repositories:         -- excluded from pull command rsync
         plugins: [myplugin1, myplugin2] -- git repositories
@@ -205,6 +205,7 @@ Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require mod
 
 # TODO
 - Check `~/vvv-local` as default location
+- `bvv ssh [-p|prod|production]` ssh into production site, cd to www/relative path
 
 # Issues
 

@@ -196,7 +196,8 @@ parse_site_config() {
 
 	ssh_host=$(yq -e -r ".sites.\"$site_id\".bvv.ssh_host" "$config_file" 2>/dev/null)
 	www_path=$(yq -e -r ".sites.\"$site_id\".bvv.www_path" "$config_file" 2>/dev/null)
-	fqdn=$(yq -e -r ".sites.\"$site_id\".bvv.fqdn" "$config_file" 2>/dev/null)
+	fqdns=()
+	readarray -t fqdns < <(yq -e -r ".sites.\"$site_id\".bvv.fqdns[]?" "$config_file" 2>/dev/null || true)
 	dev_domain=$(yq -e -r ".sites.\"$site_id\".hosts[0]" "$config_file" 2>/dev/null)
 	dump_path=$(yq -e -r ".sites.\"$site_id\".bvv.dump_path // \"~\"" "$config_file" 2>/dev/null)
 
@@ -272,8 +273,8 @@ sync_database() {
 run_post_commands() {
     local vvv_box_path="/srv/www/$1/public_html"
 
-	if [[ -z "$fqdn" || "$fqdn" == "null" ]]; then
-		>&2 echo "Missing fqdn in config for site $site_id"
+	if [[ ${#fqdns[@]} -eq 0 ]]; then
+		>&2 echo "Missing fqdns in config for site $site_id"
 		return 1
 	fi
 	if [[ -z "$dev_domain" || "$dev_domain" == "null" ]]; then
@@ -282,9 +283,14 @@ run_post_commands() {
 	fi
 
     # Always run these commands:
-    vagrant ssh -c "wp --path='$vvv_box_path' \\
-        search-replace '//$fqdn' '//$dev_domain' \\
-        && wp --path='$vvv_box_path' option update admin_email 'dev-email@flywheel.test' \\
+    local wp_cmd=""
+    for fqdn in "${fqdns[@]}"; do
+        [[ -z "$fqdn" ]] && continue
+        wp_cmd+="wp --path='$vvv_box_path' search-replace '//$fqdn' '//$dev_domain' && "
+    done
+
+    vagrant ssh -c "${wp_cmd} \\
+        wp --path='$vvv_box_path' option update admin_email 'dev-email@flywheel.test' \\
         && wp --path='$vvv_box_path' cache flush"
 
     # Execute any configured post-commands
