@@ -340,8 +340,12 @@ do_pull() {
     # Exit if we're not in a site directory
     [[ -z "$site_id" ]] && exit 1
 
-    # Parse site configuration
+    # Parse and validate site configuration
     parse_site_config "$site_id" || exit 1
+    if [[ -z "$www_path" || "$www_path" == "null" ]]; then
+        echo "Error: Missing or invalid www_path in config for site $site_id" >&2
+        exit 1
+    fi
 
     # Determine vagrant box path
     local vvv_box_path="/srv/www/$site_id"
@@ -456,8 +460,12 @@ push_single_repository() {
     local repo_type="$2"
     local repo_name="$3"
 
-    # Parse configuration
+    # Parse and validate configuration
     parse_site_config "$site_id" || exit 1
+    if [[ -z "$www_path" || "$www_path" == "null" ]]; then
+        echo "Error: Missing or invalid www_path in config for site $site_id" >&2
+        exit 1
+    fi
 
     # Confirm the repo exists locally
     local repo_path="$VVV_ROOT/www/$site_id/public_html/wp-content/$repo_type/$repo_name"
