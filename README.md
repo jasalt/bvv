@@ -1,4 +1,4 @@
-Personal WordPress development setup helper tool for VVV Vagrant extending `config.yml` for it's configuration.
+Personal WordPress development setup helper tool for [VVV Vagrant](https://varyingvagrantvagrants.org/) extending `config.yml` for it's configuration.
 
 Depends on `yq`, `rsync`, `ssh` and expects WP-CLI to be available on remote WP instances. Additionally uses `lnav` for `bvv logs` command. Written and tested with Bash 5.1 on Linux.
 
@@ -9,6 +9,8 @@ Main repository for this project with issue tracker is at [Codeberg](https://cod
 Windows is not supported for now.
 
 # Docs
+
+Functioning VVV setup (v3.15.1 or later) is expected, including VirtualBox (v7.1.6 or later) and Vagrant. Might work with other provider options also but not tested.
 
 With configuration set in VVV `config.yml` and box provisioned, normal workflow for using the tool in plugin or theme development:
 
