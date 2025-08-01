@@ -97,6 +97,14 @@ Calculates relative path based on `cwd` mapped into `/srv/site-id/` in Vagrant b
 
 When ran outside VVV directory on host it simply runs `vagrant ssh` in `VVV_ROOT_PATH`.
 
+You can also pass commands directly to execute in the Vagrant box:
+
+```
+user@host ./my-plugin/ $ bvv ssh composer install   # executes wp plugin list in the mapped directory
+```
+
+The commands will automatically run after cd'ing to the appropriate directory when inside the VVV directory structure.
+
 ### `bvv pull [db|wp-content]` Pull live site state to development environment
 
 Pulls remote server state (database and `wp-content`) to local environment with `bvv pull` similar way to [Wordmove](https://github.com/welaika/wordmove/) and other tools. Local changes in `wp-content` outside registered repositories are overridden and extra files not existing on remote are deleted. Database is also dropped re-initialized from remote dump.

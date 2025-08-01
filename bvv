@@ -168,9 +168,27 @@ cmd_ssh() {
 
     cd "$VVV_ROOT"
 
-    if [[ -n "$rel_path" ]]; then
+    if [[ -n "$rel_path" && $# -eq 0 ]]; then
         echo "SSH to Vagrant box and cd to $rel_path"
         vagrant ssh -c "cd '$rel_path' && bash -l"
+    elif [[ $# -gt 0 ]]; then
+        # Join all arguments into a single command string
+        local cmd=""
+        for arg in "$@"; do
+            if [[ -z "$cmd" ]]; then
+                cmd="$arg"
+            else
+                cmd="$cmd $arg"
+            fi
+        done
+        
+        if [[ -n "$rel_path" ]]; then
+            echo "SSH to Vagrant box, cd to $rel_path and executing: $cmd"
+            vagrant ssh -c "cd '$rel_path' && $cmd"
+        else
+            echo "SSH to Vagrant box and executing: $cmd"
+            vagrant ssh -c "$cmd"
+        fi
     else
         echo "SSH to Vagrant box"
         vagrant ssh
@@ -542,6 +560,13 @@ if [[ "$COMMAND" == "pull" && $# -gt 0 ]]; then
     esac
 fi
 
+# Handle ssh command arguments
+if [[ "$COMMAND" == "ssh" ]]; then
+    SSH_ARGS=("$@")
+else
+    SSH_ARGS=()
+fi
+
 # Validate command
 if [[ -z "$COMMAND" ]]; then
     echo "Error: No command specified" >&2
@@ -561,7 +586,7 @@ case "$COMMAND" in
         cmd_halt
         ;;
     ssh)
-        cmd_ssh
+        cmd_ssh "${SSH_ARGS[@]}"
         ;;
     pull)
         if [[ "$SUBCOMMAND" == "db" ]]; then
