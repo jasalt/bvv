@@ -216,6 +216,12 @@ Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require mod
 # TODO
 - Check `~/vvv-local` as default location
 - `bvv ssh [-p|prod|production]` ssh into production site, cd to www/relative path
+- Create global config section `bvv_global` that would provide defaults for applicable site bvv config directives across site configs
+  - wp_content_exclude: [object-cache.php, ...]
+  - deactivate_plugins: [wp-ses, two-factor-authentication, simple-cloudflare-turnstile, ...]  # plugins that are always
+
+- Rename config wp-content-exclude to have underscores
+- add `bvv pull --init` flag that would ignore the wp_content_exclude during first "initializing" pull
 
 # Issues
 
