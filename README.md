@@ -53,7 +53,7 @@ hosts:
       repositories:         -- excluded from pull command rsync
         plugins: [myplugin1, myplugin2] -- git repositories
         themes: [mytheme]
-      wp-content-exclude: [debug.log, object-cache.php]  -- excluded from wp-content sync
+      wp_content_exclude: [debug.log, object-cache.php]  -- excluded from wp-content sync
       deactivate_plugins: [wp-ses, wp-sentry-integration]
       create_admin: true                            -- creates admin user "admin" "password"
       post_commands: [echo hello world]  -- executed in vagrant box afterwards
@@ -118,7 +118,7 @@ Then site state is pulled from production roughly as in example script `pull.exa
 
 Checks that required configuration is set and strips ending slashes from paths. Expects FS paths and fqdn should be in correct format.
 
-Uses `rsync` and wp-cli over ssh. By default uses rsync to pull wp-content files, excluding configured  plugin and theme repositories and extra exclusions in `wp-content-exclude`, and then dumps and pulls remote database that is exported with wp-cli and gzipped, with `--delete-source-files` flag so the intermediate dump file is deleted from server.
+Uses `rsync` and wp-cli over ssh. By default uses rsync to pull wp-content files, excluding configured  plugin and theme repositories and extra exclusions in `wp_content_exclude`, and then dumps and pulls remote database that is exported with wp-cli and gzipped, with `--delete-source-files` flag so the intermediate dump file is deleted from server.
 
 Intermediate dump is by default saved in home folder by default to keep it out from public web directories and it's location can be changed with directive `dump_path` (not tested).
 
@@ -223,8 +223,6 @@ Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require mod
 - Create global config section `bvv_global` that would provide defaults for applicable site bvv config directives across site configs
   - wp_content_exclude: [object-cache.php, ...]
   - deactivate_plugins: [wp-ses, two-factor-authentication, simple-cloudflare-turnstile, ...]  # plugins that are always
-
-- Rename config wp-content-exclude to have underscores
 
 # Issues
 

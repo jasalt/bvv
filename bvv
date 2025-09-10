@@ -286,7 +286,7 @@ sync_wp_content() {
 
     # Read other exclusions
     local other_exclusions
-    other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp-content-exclude\"[]" "$config_file" 2>/dev/null || true) # TODO modify according to latest config format where wp-content-exclude value itself is the array of exclude entries
+    other_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"wp_content_exclude\"[]" "$config_file" 2>/dev/null || true) # TODO modify according to latest config format where wp_content_exclude value itself is the array of exclude entries
     if [[ -n "$other_exclusions" ]]; then
         while IFS= read -r other; do
             [[ -n "$other" ]] && exclusions+=("--exclude" "$other")
