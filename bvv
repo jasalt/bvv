@@ -10,6 +10,35 @@ SUBCOMMAND=""
 declare -g REPO_TYPE="" REPO_NAME=""  # For repo detection
 INCLUDE_REPOS=false
 
+# Function to check required dependencies
+check_dependencies() {
+    local missing_deps=()
+
+    if ! command -v rsync >/dev/null 2>&1; then
+        missing_deps+=("rsync")
+    fi
+
+    if ! command -v yq >/dev/null 2>&1; then
+        missing_deps+=("yq")
+    fi
+
+    if [[ ${#missing_deps[@]} -gt 0 ]]; then
+        echo "Error: Missing required dependencies: ${missing_deps[*]}" >&2
+        echo "Please install the missing dependencies:" >&2
+        for dep in "${missing_deps[@]}"; do
+            case $dep in
+                rsync)
+                    echo "  sudo apt install rsync" >&2
+                    ;;
+                yq)
+                    echo "  sudo apt install yq" >&2
+                    ;;
+            esac
+        done
+        exit 1
+    fi
+}
+
 # Function to show usage
 show_usage() {
     cat << EOF
@@ -583,6 +612,9 @@ if [[ -z "$COMMAND" ]]; then
     show_usage
     exit 1
 fi
+
+# Check dependencies
+check_dependencies
 
 # Initialize VVV_ROOT
 init_vvv_root
