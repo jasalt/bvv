@@ -16,6 +16,9 @@ With configuration set in VVV `config.yml` and box provisioned, normal workflow 
 
 - `bvv up` starts VVV
 - `bvv pull` pulls live application state to development environment
+  - `--include-repos` includes theme and plugin folders excluded with repositories directive
+  - `db` pull only database
+  - `wp-content` pull only wp-content
 - `bvv logs` (in new terminal) shows logs during development
 - *coding*
 - `bvv push` deploys changes in git repositories to live server
@@ -122,6 +125,7 @@ Intermediate dump is by default saved in home folder by default to keep it out f
 Usage examples:
 - `bvv pull db` pulls only database, removing the dump file afterwards
 - `bvv pull wp-content` pulls only wp-content files
+- `bvv pull --include-repos` pulls everything including repositories (useful for initial site setup)
 
 Extra flags:
 `--no-import` flag only downloads the database file, disables removing the dump file in development environment
@@ -221,7 +225,6 @@ Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require mod
   - deactivate_plugins: [wp-ses, two-factor-authentication, simple-cloudflare-turnstile, ...]  # plugins that are always
 
 - Rename config wp-content-exclude to have underscores
-- add `bvv pull --init` flag that would ignore the wp_content_exclude during first "initializing" pull
 
 # Issues
 

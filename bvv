@@ -8,6 +8,7 @@ VVV_ROOT=""
 COMMAND=""
 SUBCOMMAND=""
 declare -g REPO_TYPE="" REPO_NAME=""  # For repo detection
+INCLUDE_REPOS=false
 
 # Function to show usage
 show_usage() {
@@ -21,7 +22,7 @@ OPTIONS:
 COMMANDS:
   up                 Start VVV box with vagrant up
   ssh                SSH to Vagrant box in the current folder
-  pull [db|wp-content]  Pull live site state
+  pull [db|wp-content|--include-repos]  Pull live site state
   push [--all]       Deploy repository changes to remote
   logs [site-id]     View application logs with lnav
 
@@ -31,6 +32,7 @@ EXAMPLES:
   bvv pull
   bvv pull db
   bvv pull wp-content
+  bvv pull --include-repos
   bvv push
   bvv push --all
 EOF
@@ -181,7 +183,7 @@ cmd_ssh() {
                 cmd="$cmd $arg"
             fi
         done
-        
+
         if [[ -n "$rel_path" ]]; then
             echo "SSH to Vagrant box, cd to $rel_path and executing: $cmd"
             vagrant ssh -c "cd '$rel_path' && $cmd"
@@ -230,25 +232,27 @@ sync_wp_content() {
     echo "Downloading PROD wp-content files..."
     local exclusions=()
 
-    # Read exclusions from config if they exist
+    # Read exclusions from config if they exist and --include-repos is not set
     local config_file="$VVV_ROOT/config/config.yml"
 
-    # Read plugin exclusions
-    local plugin_exclusions
-    plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null || true)
-    if [[ -n "$plugin_exclusions" ]]; then
-        while IFS= read -r plugin; do
-            [[ -n "$plugin" ]] && exclusions+=("--exclude" "plugins/$plugin")
-        done <<< "$plugin_exclusions"
-    fi
+    if [[ "$INCLUDE_REPOS" == false ]]; then
+        # Read plugin exclusions
+        local plugin_exclusions
+        plugin_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".plugins[]?" "$config_file" 2>/dev/null || true)
+        if [[ -n "$plugin_exclusions" ]]; then
+            while IFS= read -r plugin; do
+                [[ -n "$plugin" ]] && exclusions+=("--exclude" "plugins/$plugin")
+            done <<< "$plugin_exclusions"
+        fi
 
-    # Read theme exclusions
-    local theme_exclusions
-    theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null || true)
-    if [[ -n "$theme_exclusions" ]]; then
-        while IFS= read -r theme; do
-            [[ -n "$theme" ]] && exclusions+=("--exclude" "themes/$theme")
-        done <<< "$theme_exclusions"
+        # Read theme exclusions
+        local theme_exclusions
+        theme_exclusions=$(yq -e -r ".sites.\"$site_id\".bvv.\"repositories\".themes[]?" "$config_file" 2>/dev/null || true)
+        if [[ -n "$theme_exclusions" ]]; then
+            while IFS= read -r theme; do
+                [[ -n "$theme" ]] && exclusions+=("--exclude" "themes/$theme")
+            done <<< "$theme_exclusions"
+        fi
     fi
 
     # Read other exclusions
@@ -316,7 +320,7 @@ run_post_commands() {
     local post_commands=()
     if [[ -f "$config_file" ]]; then
         readarray -t post_commands < <(yq -e -r ".sites.\"$site_id\".bvv.\"post_commands\"[]? // \"\"" "$config_file" 2>/dev/null) || true
-    
+
         for cmd in "${post_commands[@]}"; do
             [[ -n "$cmd" ]] || continue
             echo "Running post-command: $cmd"
@@ -542,6 +546,12 @@ push_flag=""
 # Parse flags for push
 if [[ $COMMAND == "push" && $# -gt 0 && $1 == "--all" ]]; then
     push_flag="--all"
+    shift
+fi
+
+# Parse flags for pull
+if [[ $COMMAND == "pull" && $# -gt 0 && $1 == "--include-repos" ]]; then
+    INCLUDE_REPOS=true
     shift
 fi
 
