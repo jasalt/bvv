@@ -223,6 +223,10 @@ Expects VVV Vagrant to use VirtualBox provider (Ubuntu 24.04), might require mod
 - Create global config section `bvv_global` that would provide defaults for applicable site bvv config directives across site configs
   - wp_content_exclude: [object-cache.php, ...]
   - deactivate_plugins: [wp-ses, two-factor-authentication, simple-cloudflare-turnstile, ...]  # plugins that are always
+- Add `dev_plugins` directive, plugins that are installed automatically and their paths excluded from `pull` command rsync
+
+- Disable Block Editor welcome -notice for created admin-account from usermeta `wp_persisted_preferences`:	`a:4:{s:14:"core/edit-site";a:1:{s:12:"welcomeGuide";b:0;}s:4:"core";a:1:{s:26:"isComplementaryAreaVisible";b:1;}s:9:"_modified";s:24:"2025-08-22T05:51:34.793Z";s:14:"core/edit-post";a:1:{s:12:"welcomeGuide";b:0;}}`
+
 
 # Issues
 
