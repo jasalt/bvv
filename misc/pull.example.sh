@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Example script syncing production site state to local Vagrant
+
+# Site specific config is hardcoded in the Bash script.
+# Precursor to bvv script with config declared in VVV's config.yml.
+
+
 set -eox pipefail # verbose output, should also stop script if something fails
 
 if [ "$1" = "-h" ]; then
