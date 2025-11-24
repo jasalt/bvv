@@ -82,10 +82,10 @@ hosts:
 Most functionality expects that current working directory is within the VVV's `www` directory.
 
 ### `bvv up`
-Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
+Starts VVV box with `vagrant up`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_DIR`.
 
 ### `bvv down` & `bvv halt`
-Stop VVV box with `vagrant halt`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_PATH`.
+Stop VVV box with `vagrant halt`, can be run from anywhere when environment variable or argument is given for `VVV_ROOT_DIR`.
 
 ### `bvv ssh` SSH to Vagrant box in the current folder
 While editing plugin or theme files on host, sometimes it's necessary to run commands like `composer install` inside the Vagrant box.
@@ -98,7 +98,7 @@ vagrant@vagrant ./my-plugin/ $ composer install    # installs happily using comp
 
 Calculates relative path based on `cwd` mapped into `/srv/site-id/` in Vagrant box, `vagrant ssh` and `cd` into the relative path e.g. `vagrant ssh -c "cd /srv/site-id/ && bash -l"`.
 
-When ran outside VVV directory on host it simply runs `vagrant ssh` in `VVV_ROOT_PATH`.
+When ran outside VVV directory on host it simply runs `vagrant ssh` in `VVV_ROOT_DIR`.
 
 You can also pass commands directly to execute in the Vagrant box:
 
@@ -169,7 +169,7 @@ The tool should function without any environment variable setup and also allow s
 
 On startup `$VVV_ROOT` is initialized pointing to a standard VVV root folder structure (having `Vagrantfile` and `./config/config.yml`) prioritizing methods:
 1) `--vvv-root` command line argument
-2) `VVV_ROOT_PATH` environment variable
+2) `VVV_ROOT_DIR` environment variable
 3) dynamically identify current VVV root directory (having `Vagrantfile` and `./config/config.yml`) by traversing upwards in the directory tree
 
 # Possible future features / draft ideas
